@@ -63,42 +63,85 @@ def main():
     # Load catalogues
     catalogues = config.get_catalogues()
     col_mappings = config.get_column_mappings()
+    analysis_params = config.get_analysis_params()
+    mode = analysis_params.get('mode', '3d')
 
     print("\n" + "-"*70)
     print("LOADING CATALOGUES")
     print("-"*70)
 
+    # Determine which columns to load for memory efficiency
     cluster_col = col_mappings.get('cluster', {})
+    cluster_ra = cluster_col.get('ra', 'RIGHT_ASCENSION_CLUSTER_pzwav')
+    cluster_dec = cluster_col.get('dec', 'DECLINATION_CLUSTER_pzwav')
+    cluster_z = cluster_col.get('redshift', 'Z_CLUSTER_pzwav')
+
+    # For clusters, also need filter columns
+    cluster_cols_to_load = [cluster_ra, cluster_dec, cluster_z]
+    for filter_col in cluster_filters.keys():
+        if filter_col not in cluster_cols_to_load:
+            cluster_cols_to_load.append(filter_col)
+
     clusters = cat_manager.load_cluster_catalogue(
         catalogues['clusters'],
-        ra_col=cluster_col.get('ra', 'RIGHT_ASCENSION_CLUSTER_pzwav'),
-        dec_col=cluster_col.get('dec', 'DECLINATION_CLUSTER_pzwav'),
-        z_col=cluster_col.get('redshift', 'Z_CLUSTER_pzwav')
+        ra_col=cluster_ra,
+        dec_col=cluster_dec,
+        z_col=cluster_z
     )
 
     galaxy_col = col_mappings.get('galaxy', {})
+    galaxy_ra = galaxy_col.get('ra', 'right_ascension')
+    galaxy_dec = galaxy_col.get('dec', 'declination')
+    galaxy_z = galaxy_col.get('redshift', 'phz_median')
+
+    # For 2D mode, only load RA, Dec, redshift (and filter columns)
+    # This saves significant memory (62M rows × fewer columns)
+    if mode == '2d':
+        gal_cols_to_load = [galaxy_ra, galaxy_dec, galaxy_z]
+        # Add any filter columns
+        for filter_col in galaxy_filters.keys():
+            if filter_col not in gal_cols_to_load and filter_col != 'redshift':
+                gal_cols_to_load.append(filter_col)
+        print(f"2D mode: Loading only {len(gal_cols_to_load)} galaxy columns to save memory")
+    else:
+        gal_cols_to_load = None  # Load all columns for 3D mode
+
     galaxies = cat_manager.load_galaxy_catalogue(
         catalogues['galaxies'],
-        ra_col=galaxy_col.get('ra', 'right_ascension'),
-        dec_col=galaxy_col.get('dec', 'declination'),
-        z_col=galaxy_col.get('redshift', 'phz_median')
+        ra_col=galaxy_ra,
+        dec_col=galaxy_dec,
+        z_col=galaxy_z,
+        columns=gal_cols_to_load
     )
 
-    # Add shapes if available
-    if 'ellipticity' in galaxy_col and galaxy_col['ellipticity'] in galaxies.colnames:
-        print("Adding galaxy shape information...")
-        galaxies = cat_manager.add_galaxy_shapes(
-            galaxies,
-            ellipticity_col=galaxy_col['ellipticity'],
-            pa_col=galaxy_col.get('position_angle', 'position_angle')
-        )
+    # Add shapes if available and needed
+    if mode == '3d' and 'ellipticity' in galaxy_col:
+        if galaxy_col['ellipticity'] in galaxies.colnames:
+            print("Adding galaxy shape information...")
+            galaxies = cat_manager.add_galaxy_shapes(
+                galaxies,
+                ellipticity_col=galaxy_col['ellipticity'],
+                pa_col=galaxy_col.get('position_angle', 'position_angle')
+            )
 
     random_col = col_mappings.get('random', {})
+    random_ra = random_col.get('ra', 'right_ascension')
+    random_dec = random_col.get('dec', 'declination')
+    random_z = random_col.get('redshift', 'z')
+
+    # For randoms, only load RA, Dec, redshift in 2D mode
+    if mode == '2d':
+        random_cols_to_load = [random_ra, random_dec, random_z]
+        print(f"2D mode: Loading only {len(random_cols_to_load)} random columns to save memory")
+    else:
+        random_cols_to_load = None
+
     randoms = cat_manager.load_random_catalogue(
         catalogues['randoms'],
-        ra_col=random_col.get('ra', 'right_ascension'),
-        dec_col=random_col.get('dec', 'declination'),
-        z_col=random_col.get('redshift', 'z')
+        ra_col=random_ra,
+        dec_col=random_dec,
+        z_col=random_z,
+        columns=random_cols_to_load
     )
 
     # Apply systematic weights if configured

@@ -36,16 +36,13 @@ analysis_parameters:
   metric: Euclidean      # Flat-sky approximation (faster than Arc)
   mode: 2d               # Use angular coordinates (RA/Dec) not Cartesian
 
-# Cluster bins - matching your existing redshift and richness bins
+# Cluster bins - 5 tomographic redshift bins (matching galaxy bins)
 cluster_bins:
   redshift:
     column: Z_CLUSTER
-    bins: [0.2, 0.38, 0.43, 0.5, 0.6, 0.9, 1.6]
-  richness:
-    column: RICHNESS_CLUSTER
-    bins: [40, 80, 140, 450]
+    bins: [0.0, 0.3, 0.6, 0.9, 1.2, 1.5]
 
-# Galaxy bins - 5 tomographic redshift bins
+# Galaxy bins - 5 tomographic redshift bins (matching cluster bins)
 galaxy_bins:
   redshift:
     column: redshift
@@ -60,7 +57,7 @@ output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_cl
 # SLURM configuration for CC-IN2P3
 slurm:
   time: "02:00:00"     # Should be faster with 2D mode and tomographic filtering
-  mem: "32G"           # Less memory needed when randoms are filtered per bin
+  mem: "64G"           # Need 64GB for 62M galaxy catalogue loading
   cpus: 8
   partition: "hpc"
   account: "euclid"

@@ -61,7 +61,8 @@ class CatalogueManager:
         return clusters
 
     def load_galaxy_catalogue(self, filepath, ra_col='right_ascension',
-                             dec_col='declination', z_col='phz_median'):
+                             dec_col='declination', z_col='phz_median',
+                             columns=None):
         """
         Load a galaxy catalogue from FITS file.
 
@@ -75,6 +76,9 @@ class CatalogueManager:
             Name of the declination column
         z_col : str
             Name of the redshift column
+        columns : list, optional
+            List of column names to load. If None, loads all columns.
+            For memory efficiency with large catalogues, specify only needed columns.
 
         Returns
         -------
@@ -82,7 +86,16 @@ class CatalogueManager:
             The loaded catalogue
         """
         print(f"Loading galaxy catalogue from {filepath}")
-        galaxies = Table(fits.open(filepath)[1].data)
+
+        with fits.open(filepath) as hdul:
+            if columns is not None:
+                # Only load specified columns for memory efficiency
+                print(f"  Loading only {len(columns)} columns to save memory")
+                galaxies = Table()
+                for col in columns:
+                    galaxies[col] = hdul[1].data[col]
+            else:
+                galaxies = Table(hdul[1].data)
 
         # Standardize column names
         galaxies['ra'] = galaxies[ra_col]
@@ -93,7 +106,7 @@ class CatalogueManager:
         return galaxies
 
     def load_random_catalogue(self, filepath, ra_col='right_ascension',
-                             dec_col='declination', z_col='z'):
+                             dec_col='declination', z_col='z', columns=None):
         """
         Load a random catalogue from FITS file.
 
@@ -107,6 +120,8 @@ class CatalogueManager:
             Name of the declination column
         z_col : str
             Name of the redshift column
+        columns : list, optional
+            List of column names to load. If None, loads all columns.
 
         Returns
         -------
@@ -114,7 +129,16 @@ class CatalogueManager:
             The loaded catalogue
         """
         print(f"Loading random catalogue from {filepath}")
-        randoms = Table(fits.open(filepath)[1].data)
+
+        with fits.open(filepath) as hdul:
+            if columns is not None:
+                # Only load specified columns for memory efficiency
+                print(f"  Loading only {len(columns)} columns to save memory")
+                randoms = Table()
+                for col in columns:
+                    randoms[col] = hdul[1].data[col]
+            else:
+                randoms = Table(hdul[1].data)
 
         # Standardize column names
         randoms['ra'] = randoms[ra_col]
