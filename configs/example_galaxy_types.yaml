@@ -1,0 +1,64 @@
+# Example configuration for galaxy type-dependent clustering
+
+catalogues:
+  clusters: /path/to/cluster_catalogue.fits
+  galaxies: /path/to/galaxy_catalogue.fits
+  randoms: /path/to/random_catalogue.fits
+
+column_mappings:
+  cluster:
+    ra: RIGHT_ASCENSION_CLUSTER_pzwav
+    dec: DECLINATION_CLUSTER_pzwav
+    redshift: Z_CLUSTER_pzwav
+  galaxy:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+    ellipticity: ellipticity
+    position_angle: position_angle
+  random:
+    ra: right_ascension
+    dec: declination
+    redshift: z
+
+cosmology:
+  H0: 70
+  Om0: 0.3
+
+analysis_parameters:
+  min_sep: 0.1
+  max_sep: 10.0
+  nbins: 16
+  min_rpar: -60
+  max_rpar: 60
+  bin_type: Log
+  metric: Rperp
+  mode: 3d
+
+# Single redshift bin for clusters
+cluster_bins:
+  redshift:
+    column: Z_CLUSTER_pzwav
+    bins: [0.2, 1.2]
+
+# Split galaxies by type (early vs late) and redshift
+# Early type: Sersic index > 2
+# Late type: Sersic index < 2
+galaxy_bins:
+  redshift:
+    column: redshift
+    bins: [0.5, 1.0, 1.5]
+  galaxy_type:
+    column: sersic_sersic_vis_index
+    bins: [0.0, 2.0, 10.0]  # [0-2]: late, [2-10]: early
+
+systematic_weights:
+  enabled: false
+
+output_directory: ./outputs_by_type
+
+slurm:
+  time: "02:00:00"
+  mem: "16G"
+  cpus: 4
+  partition: "batch"

@@ -1,0 +1,68 @@
+# Configuration for RR2 cluster-galaxy clustering analysis
+
+catalogues:
+  clusters: /sps/euclid/Users/cmurray/RR2_alt/amico_merged_cl2025-07-17T09_36_11.fits
+  galaxies: /sps/euclid/Users/cmurray/rr2_data/galaxies.fits
+  randoms: /sps/euclid/Users/cmurray/rr2_data/full_area_randoms_20250724.fits
+
+column_mappings:
+  cluster:
+    ra: RIGHT_ASCENSION_CLUSTER
+    dec: DECLINATION_CLUSTER
+    redshift: Z_CLUSTER
+  galaxy:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+    ellipticity: ellipticity
+    position_angle: position_angle
+  random:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+
+cosmology:
+  H0: 70
+  Om0: 0.3
+
+analysis_parameters:
+  min_sep: 0.05          # Mpc/h (matching your existing script)
+  max_sep: 200.0         # Mpc/h
+  nbins: 16
+  min_rpar: -60          # Mpc/h (line-of-sight)
+  max_rpar: 60           # Mpc/h
+  bin_type: Log
+  metric: Rperp
+  mode: 3d
+
+# Cluster bins - matching your existing redshift and richness bins
+cluster_bins:
+  redshift:
+    column: Z_CLUSTER
+    bins: [0.2, 0.38, 0.43, 0.5, 0.6, 0.9, 1.6]
+  richness:
+    column: RICHNESS_CLUSTER
+    bins: [40, 80, 140, 450]
+
+# Galaxy bins - all galaxies, early-type, late-type
+galaxy_bins:
+  galaxy_type:
+    column: sersic_sersic_vis_index
+    bins: [0.0, 2.0, 10.0]  # Late-type: [0-2], Early-type: [2-10]
+
+# Systematic weights (disabled for now)
+systematic_weights:
+  enabled: false
+
+output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs_rr2
+
+# SLURM configuration for CC-IN2P3
+slurm:
+  time: "08:00:00"     # Increased to 8 hours
+  mem: "128G"          # Increased to 128GB (62M galaxies + randoms need lots of memory)
+  cpus: 8
+  partition: "hpc"
+  account: "euclid"
+  modules:
+    - Programming_Languages/anaconda/3.11
+  conda_env: /sps/euclid/Users/cmurray/miniconda3/envs/cucount

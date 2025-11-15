@@ -1,0 +1,62 @@
+# Example configuration for weak lensing around clusters
+# This uses angular coordinates for projection effects
+
+catalogues:
+  clusters: /path/to/cluster_catalogue.fits
+  galaxies: /path/to/galaxy_catalogue.fits
+  randoms: /path/to/random_catalogue.fits
+
+column_mappings:
+  cluster:
+    ra: RIGHT_ASCENSION_CLUSTER_pzwav
+    dec: DECLINATION_CLUSTER_pzwav
+    redshift: Z_CLUSTER_pzwav
+  galaxy:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+    ellipticity: ellipticity
+    position_angle: position_angle
+  random:
+    ra: right_ascension
+    dec: declination
+    redshift: z
+
+cosmology:
+  H0: 70
+  Om0: 0.3
+
+# For weak lensing, use angular coordinates
+analysis_parameters:
+  min_sep: 0.01          # degrees
+  max_sep: 0.5           # degrees
+  nbins: 16
+  min_rpar: null         # Not used for angular
+  max_rpar: null
+  bin_type: Log
+  metric: Euclidean      # For angular coordinates
+  sep_units: deg
+  mode: 2d               # Use angular coordinates
+
+# Cluster (lens) bins
+cluster_bins:
+  redshift:
+    column: Z_CLUSTER_pzwav
+    bins: [0.2, 0.5, 0.8]  # Lens redshifts
+
+# Source galaxy bins (must be at higher redshift than lenses)
+galaxy_bins:
+  redshift:
+    column: redshift
+    bins: [0.8, 1.5, 2.0]  # Source redshifts
+
+systematic_weights:
+  enabled: false
+
+output_directory: ./outputs_lensing
+
+slurm:
+  time: "03:00:00"
+  mem: "32G"
+  cpus: 8
+  partition: "batch"

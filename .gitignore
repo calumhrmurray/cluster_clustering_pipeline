@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Data and outputs
+outputs/
+jobs/
+*.fits
+*.pkl
+*.npz
+*.npy
+
+# Logs
+*.log
+*.out
+*.err
+
+# Config (keep examples)
+config.yaml
+my_*.yaml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

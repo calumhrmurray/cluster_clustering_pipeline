@@ -1,0 +1,71 @@
+# Example configuration for Euclid Deep Field South (EDFS) Q1 data
+
+catalogues:
+  clusters: /path/to/edfs_q1_cluster_catalogue.fits
+  galaxies: /path/to/edfs_galaxy_catalogue.fits
+  randoms: /path/to/edfs_random_catalogue.fits
+
+column_mappings:
+  cluster:
+    ra: RIGHT_ASCENSION_CLUSTER_pzwav
+    dec: DECLINATION_CLUSTER_pzwav
+    redshift: Z_CLUSTER_pzwav
+  galaxy:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+    ellipticity: ellipticity
+    position_angle: position_angle
+  random:
+    ra: right_ascension
+    dec: declination
+    redshift: z
+
+cosmology:
+  H0: 70
+  Om0: 0.3
+
+analysis_parameters:
+  min_sep: 0.1           # Mpc/h
+  max_sep: 10.0          # Mpc/h
+  nbins: 16
+  min_rpar: -60          # Mpc/h (line-of-sight)
+  max_rpar: 60           # Mpc/h
+  bin_type: Log          # or Linear
+  metric: Rperp          # Use Rperp for 3D clustering
+  mode: 3d               # 3d for Cartesian, 2d for angular
+
+# Cluster bins - all combinations will be computed
+cluster_bins:
+  redshift:
+    column: Z_CLUSTER_pzwav
+    bins: [0.2, 0.5, 0.8, 1.2]
+  richness:
+    column: RICHNESS_CLUSTER_pzwav
+    bins: [10, 20, 50]
+
+# Galaxy bins
+galaxy_bins:
+  redshift:
+    column: redshift
+    bins: [0.0, 0.5, 1.0, 1.5, 2.0]
+
+# Systematic weights (for future use)
+systematic_weights:
+  enabled: false
+  weight_file: null
+
+output_directory: ./outputs
+
+# SLURM configuration
+slurm:
+  time: "02:00:00"
+  mem: "16G"
+  cpus: 4
+  partition: "batch"
+  account: null
+  # Uncomment to load modules
+  # modules:
+  #   - python/3.11
+  # Uncomment to use conda environment
+  # conda_env: euclid_env
