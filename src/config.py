@@ -247,6 +247,29 @@ class PipelineConfig:
             if param not in analysis:
                 raise ValueError(f"Missing required analysis parameter: {param}")
 
+        # Validate mode-specific parameters
+        mode = analysis.get('mode', '3d')
+        if mode == '2d':
+            # 2D mode should use angular metrics
+            metric = analysis.get('metric', 'Euclidean')
+            if metric not in ['Euclidean', 'Arc']:
+                raise ValueError(f"2D mode requires metric='Euclidean' or 'Arc', got '{metric}'")
+
+            # 2D mode shouldn't have line-of-sight parameters
+            if 'min_rpar' in analysis or 'max_rpar' in analysis:
+                print("WARNING: min_rpar/max_rpar are ignored in 2D mode")
+
+            # Check sep_units if provided
+            sep_units = analysis.get('sep_units')
+            if sep_units and sep_units not in ['deg', 'arcmin', 'arcsec', 'radians']:
+                raise ValueError(f"Invalid sep_units for 2D mode: {sep_units}")
+
+        elif mode == '3d':
+            # 3D mode should use Rperp metric
+            metric = analysis.get('metric', 'Rperp')
+            if metric != 'Rperp':
+                print(f"WARNING: 3D mode typically uses metric='Rperp', got '{metric}'")
+
         print("Configuration validation passed")
         return True
 

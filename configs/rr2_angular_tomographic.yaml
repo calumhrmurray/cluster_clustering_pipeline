@@ -1,0 +1,69 @@
+# Configuration for RR2 cluster-galaxy angular clustering with tomographic bins
+# Uses 2D angular correlation functions (much faster than 3D projected)
+
+catalogues:
+  clusters: /sps/euclid/Users/cmurray/RR2_alt/amico_merged_cl2025-07-17T09_36_11.fits
+  galaxies: /sps/euclid/Users/cmurray/rr2_data/galaxies.fits
+  randoms: /sps/euclid/Users/cmurray/rr2_data/full_area_randoms_20250724.fits
+
+column_mappings:
+  cluster:
+    ra: RIGHT_ASCENSION_CLUSTER
+    dec: DECLINATION_CLUSTER
+    redshift: Z_CLUSTER
+  galaxy:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+    ellipticity: ellipticity
+    position_angle: position_angle
+  random:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+
+cosmology:
+  H0: 70
+  Om0: 0.3
+
+analysis_parameters:
+  # Angular separation parameters (2D mode)
+  min_sep: 0.1           # arcminutes
+  max_sep: 60.0          # arcminutes
+  sep_units: arcmin
+  nbins: 16
+  bin_type: Log
+  metric: Euclidean      # Flat-sky approximation (faster than Arc)
+  mode: 2d               # Use angular coordinates (RA/Dec) not Cartesian
+
+# Cluster bins - matching your existing redshift and richness bins
+cluster_bins:
+  redshift:
+    column: Z_CLUSTER
+    bins: [0.2, 0.38, 0.43, 0.5, 0.6, 0.9, 1.6]
+  richness:
+    column: RICHNESS_CLUSTER
+    bins: [40, 80, 140, 450]
+
+# Galaxy bins - 5 tomographic redshift bins
+galaxy_bins:
+  redshift:
+    column: redshift
+    bins: [0.0, 0.3, 0.6, 0.9, 1.2, 1.5]
+
+# Systematic weights (disabled for now)
+systematic_weights:
+  enabled: false
+
+output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs_rr2_angular
+
+# SLURM configuration for CC-IN2P3
+slurm:
+  time: "02:00:00"     # Should be faster with 2D mode and tomographic filtering
+  mem: "32G"           # Less memory needed when randoms are filtered per bin
+  cpus: 8
+  partition: "hpc"
+  account: "euclid"
+  modules:
+    - Programming_Languages/anaconda/3.11
+  conda_env: /sps/euclid/Users/cmurray/miniconda3/envs/cucount

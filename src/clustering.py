@@ -283,10 +283,39 @@ def compute_weighted_clustering(cluster_filters, galaxy_filters,
             filtered_galaxies['w'] = np.ones(len(filtered_galaxies))
         filtered_galaxies['w'] *= galaxy_weights
 
-    # Add coordinates
-    filtered_clusters = catalogue_manager.add_cartesian_coordinates(filtered_clusters)
-    filtered_galaxies = catalogue_manager.add_cartesian_coordinates(filtered_galaxies)
-    random_catalogue = catalogue_manager.add_cartesian_coordinates(random_catalogue)
+    # Get mode from analysis parameters
+    mode = analysis_params.get('mode', '3d')
+
+    # Validate mode and parameters
+    if mode == '2d':
+        # For 2D mode, check that we're not using 3D-only parameters
+        if 'min_rpar' in analysis_params or 'max_rpar' in analysis_params:
+            print("WARNING: min_rpar/max_rpar are ignored in 2D mode")
+        if analysis_params.get('metric') not in ['Euclidean', 'Arc', None]:
+            print(f"WARNING: metric='{analysis_params.get('metric')}' unusual for 2D mode")
+
+    # Add coordinates (only Cartesian for 3D mode)
+    if mode == '3d':
+        print("\nAdding Cartesian coordinates for 3D mode...")
+        filtered_clusters = catalogue_manager.add_cartesian_coordinates(filtered_clusters)
+        filtered_galaxies = catalogue_manager.add_cartesian_coordinates(filtered_galaxies)
+        random_catalogue = catalogue_manager.add_cartesian_coordinates(random_catalogue)
+    else:
+        print("\nUsing angular coordinates for 2D mode...")
+
+    # Filter randoms by galaxy redshift bin for tomographic analysis
+    if 'redshift' in galaxy_filters:
+        z_range = galaxy_filters['redshift']
+        if isinstance(z_range, tuple) and len(z_range) == 2:
+            z_min, z_max = z_range
+            n_randoms_before = len(random_catalogue)
+            random_catalogue = random_catalogue[
+                (random_catalogue['redshift'] >= z_min) &
+                (random_catalogue['redshift'] < z_max)
+            ]
+            n_randoms_after = len(random_catalogue)
+            print(f"Filtered randoms by galaxy redshift bin [{z_min:.2f}, {z_max:.2f}): "
+                  f"{n_randoms_before} → {n_randoms_after}")
 
     print(f"\nCATALOGUE SIZES:")
     print(f"  Filtered clusters: {len(filtered_clusters)}")
