@@ -145,22 +145,44 @@ def main():
     )
 
     # Apply systematic weights if configured
-    galaxy_weights = None
     weight_config = config.get_weight_config()
     if weight_config.get('enabled', False):
         print("\n" + "-"*70)
-        print("COMPUTING SYSTEMATIC WEIGHTS")
+        print("APPLYING SYSTEMATIC WEIGHTS FROM HEALPIX MAPS")
         print("-"*70)
 
-        if 'weight_file' in weight_config and weight_config['weight_file']:
-            # Load precomputed weights
-            print(f"Loading weights from {weight_config['weight_file']}")
-            from src.weights import WeightCalculator
-            galaxy_weights = WeightCalculator.load_weights(weight_config['weight_file'])
-        else:
-            # Compute weights on the fly
-            print("Computing systematic weights...")
-            galaxy_weights = apply_systematic_weights(galaxies, weight_config)
+        from src.systematic_weights import apply_systematic_weights
+
+        # Apply cluster weights
+        if 'cluster_weight_file' in weight_config and weight_config['cluster_weight_file']:
+            print("\nApplying weights to clusters...")
+            clusters = apply_systematic_weights(
+                clusters,
+                weight_config['cluster_weight_file'],
+                ra_col='ra',
+                dec_col='dec',
+                output_col='w'
+            )
+
+        # Apply galaxy weights (to both galaxies AND randoms - critical!)
+        if 'galaxy_weight_file' in weight_config and weight_config['galaxy_weight_file']:
+            print("\nApplying weights to galaxies...")
+            galaxies = apply_systematic_weights(
+                galaxies,
+                weight_config['galaxy_weight_file'],
+                ra_col='ra',
+                dec_col='dec',
+                output_col='w'
+            )
+
+            print("\nApplying weights to randoms (SAME weights as galaxies)...")
+            randoms = apply_systematic_weights(
+                randoms,
+                weight_config['galaxy_weight_file'],  # Same weight file!
+                ra_col='ra',
+                dec_col='dec',
+                output_col='w'
+            )
 
     # Get analysis parameters
     analysis_params = config.get_analysis_params()
@@ -174,6 +196,7 @@ def main():
     print("-"*70)
 
     # Run the analysis
+    # Note: Weights are now in the 'w' column of catalogues, not passed separately
     results = compute_weighted_clustering(
         cluster_filters=cluster_filters,
         galaxy_filters=galaxy_filters,
@@ -183,7 +206,7 @@ def main():
         catalogue_manager=cat_manager,
         analysis_params=analysis_params,
         output_dir=output_dir,
-        galaxy_weights=galaxy_weights
+        galaxy_weights=None  # Weights now in catalogue 'w' column
     )
 
     if results is not None:

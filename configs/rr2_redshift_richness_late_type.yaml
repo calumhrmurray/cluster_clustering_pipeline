@@ -1,0 +1,76 @@
+# Configuration for RR2 cluster-galaxy clustering: Redshift and Richness bins - LATE-TYPE GALAXIES
+# 6 redshift bins from 0.1 to 1.9
+# 3 richness bins: [40, 80, 140, 450]
+# Late-type galaxies: Sersic index < 2.0
+# NO systematic weights
+# 2D angular mode
+
+catalogues:
+  clusters: /sps/euclid/Users/cmurray/RR2_alt/amico_merged_cl2025-07-17T09_36_11.fits
+  galaxies: /sps/euclid/Users/cmurray/rr2_data/galaxies.fits
+  randoms: /sps/euclid/Users/cmurray/rr2_data/full_area_randoms_20250724.fits
+
+column_mappings:
+  cluster:
+    ra: RIGHT_ASCENSION_CLUSTER
+    dec: DECLINATION_CLUSTER
+    redshift: Z_CLUSTER
+  galaxy:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+    sersic_index: sersic_sersic_vis_index
+  random:
+    ra: right_ascension
+    dec: declination
+    redshift: phz_median
+
+cosmology:
+  H0: 70
+  Om0: 0.3
+
+analysis_parameters:
+  # Angular separation parameters (2D mode)
+  min_sep: 0.1           # arcminutes
+  max_sep: 60.0          # arcminutes
+  sep_units: arcmin
+  nbins: 32
+  bin_type: Log
+  metric: Euclidean      # Flat-sky approximation
+  mode: 2d               # Angular coordinates (θ in arcmin)
+  npatch: 50             # Number of patches for jackknife error estimation
+
+# Cluster bins - 6 redshift bins × 3 richness bins
+cluster_bins:
+  redshift:
+    column: Z_CLUSTER
+    bins: [0.1, 0.4, 0.7, 1.0, 1.3, 1.6, 1.9]
+  richness:
+    column: RICHNESS_CLUSTER
+    bins: [40, 80, 140, 450]
+
+# Galaxy bins - 6 redshift bins, late-type only (Sersic < 2.0)
+galaxy_bins:
+  redshift:
+    column: redshift
+    bins: [0.1, 0.4, 0.7, 1.0, 1.3, 1.6, 1.9]
+  sersic_index:
+    column: sersic_sersic_vis_index
+    bins: [0.0, 2.0]  # Late-type: Sersic < 2.0
+
+# Systematic weights - DISABLED
+systematic_weights:
+  enabled: false
+
+output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs_rr2_redshift_richness_late
+
+# SLURM configuration for CC-IN2P3
+slurm:
+  time: "02:00:00"
+  mem: "64G"
+  cpus: 8
+  partition: "hpc"
+  account: "euclid"
+  modules:
+    - Programming_Languages/anaconda/3.11
+  conda_env: /sps/euclid/Users/cmurray/miniconda3/envs/cucount

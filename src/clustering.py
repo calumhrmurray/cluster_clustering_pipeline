@@ -83,6 +83,7 @@ class ClusteringAnalysis:
             'max_sep': self.max_sep,
             'nbins': self.nbins,
             'bin_type': self.bin_type,
+            'var_method': 'jackknife',  # Use jackknife for error estimation
         }
 
         if self.sep_units is not None:
@@ -326,9 +327,13 @@ def compute_weighted_clustering(cluster_filters, galaxy_filters,
     use_shapes = 'e1' in filtered_galaxies.colnames
     use_weights = 'w' in filtered_galaxies.colnames
 
+    # Get npatch for jackknife (default to 50)
+    npatch = analysis_params.get('npatch', 50)
+
     print("\nCreating TreeCorr catalogues...")
+    print(f"  Using npatch={npatch} for jackknife error estimation")
     galaxy_cat = catalogue_manager.create_treecorr_catalogue(
-        filtered_galaxies, use_shapes=use_shapes, use_weights=use_weights,
+        filtered_galaxies, npatch=npatch, use_shapes=use_shapes, use_weights=use_weights,
         mode=analysis_params.get('mode', '3d'))
 
     cluster_cat = catalogue_manager.create_treecorr_catalogue(
@@ -339,8 +344,11 @@ def compute_weighted_clustering(cluster_filters, galaxy_filters,
         random_catalogue, patch_centers=galaxy_cat.patch_centers,
         mode=analysis_params.get('mode', '3d'))
 
-    # Create analysis object (filter out mode parameter)
-    clustering_params = {k: v for k, v in analysis_params.items() if k != 'mode'}
+    print(f"  Galaxy catalog has {len(galaxy_cat.patch_centers)} patch centers")
+    print(f"  Jackknife error bars will be computed using var_method='jackknife'")
+
+    # Create analysis object (filter out mode and npatch parameters)
+    clustering_params = {k: v for k, v in analysis_params.items() if k not in ['mode', 'npatch']}
     analysis = ClusteringAnalysis(**clustering_params)
 
     # Compute clustering

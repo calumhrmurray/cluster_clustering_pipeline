@@ -125,7 +125,7 @@ def create_job_script(job_spec, config, script_dir, pipeline_dir):
     return script_path
 
 
-def create_job_array_script(config, pipeline_dir, n_jobs, config_path):
+def create_job_array_script(config, pipeline_dir, n_jobs, config_path, config_name):
     """
     Create a single SLURM job array script for all jobs.
 
@@ -189,10 +189,10 @@ def create_job_array_script(config, pipeline_dir, n_jobs, config_path):
     script_content += "echo \"Running job $JOB_ID\"\n"
     script_content += "\n"
 
-    # Use the actual config file path
+    # Use the actual config file path and config-specific spec directory
     script_content += f"python scripts/run_single_job.py \\\n"
     script_content += f"    --config {config_path} \\\n"
-    script_content += f"    --job-spec jobs/specs/job_${{JOB_ID}}_spec.yaml\n"
+    script_content += f"    --job-spec jobs/specs/{config_name}/job_${{JOB_ID}}_spec.yaml\n"
 
     # Write script
     script_path = pipeline_dir / "jobs/submit_array.sh"
@@ -226,6 +226,9 @@ def main():
     else:
         pipeline_dir = config_path.parent
 
+    # Get config name (without extension) for unique spec directory
+    config_name = config_path.stem  # e.g., 'rr2_redshift_all_galaxies'
+
     # Create output directories
     if args.output_dir:
         job_dir = Path(args.output_dir)
@@ -233,7 +236,7 @@ def main():
         job_dir = pipeline_dir / "jobs"
 
     script_dir = job_dir / "scripts"
-    spec_dir = job_dir / "specs"
+    spec_dir = job_dir / "specs" / config_name  # Config-specific subdirectory
     log_dir = job_dir / "logs"
 
     for directory in [script_dir, spec_dir, log_dir]:
@@ -272,7 +275,7 @@ def main():
     if args.array:
         # Create single job array script
         print("\nGenerating job array script...")
-        array_script = create_job_array_script(config, pipeline_dir, len(job_specs), config_path)
+        array_script = create_job_array_script(config, pipeline_dir, len(job_specs), config_path, config_name)
         print(f"Job array script created: {array_script}")
         print(f"\nTo submit: sbatch {array_script}")
 

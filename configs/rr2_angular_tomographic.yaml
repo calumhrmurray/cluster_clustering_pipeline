@@ -48,11 +48,13 @@ galaxy_bins:
     column: redshift
     bins: [0.0, 0.3, 0.6, 0.9, 1.2, 1.5]
 
-# Systematic weights (disabled for now)
+# Systematic weights
 systematic_weights:
-  enabled: false
+  enabled: true
+  cluster_weight_file: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/cluster_validation/outputs/rr2_baseline/20251115T174038Z/tables/systematic_weights/AMICO_SNR8_weights.fits
+  galaxy_weight_file: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/cluster_validation/outputs/rr2_baseline/20251115T174038Z/tables/systematic_weights/RR2_GALAXIES_weights.fits
 
-output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs_rr2_angular
+output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs_rr2_angular_weighted
 
 # SLURM configuration for CC-IN2P3
 slurm:
