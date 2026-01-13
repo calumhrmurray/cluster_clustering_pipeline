@@ -116,7 +116,7 @@ def get_richness_bin_label(lambda_min, lambda_max):
 
 def plot_correlation_function(ax, r, xi, sigma_xi, label=None, color=None,
                                marker='o', markersize=6, show_errors=True,
-                               linestyle='-', alpha=1.0):
+                               linestyle='none', alpha=1.0):
     """
     Plot a correlation function with error bars on a given axis.
 
@@ -141,7 +141,7 @@ def plot_correlation_function(ax, r, xi, sigma_xi, label=None, color=None,
     show_errors : bool
         Whether to show error bars
     linestyle : str
-        Line style
+        Line style (default: 'none' for no lines)
     alpha : float
         Transparency
     """
@@ -160,7 +160,7 @@ def plot_correlation_function(ax, r, xi, sigma_xi, label=None, color=None,
 
 
 def format_clustering_axis(ax, xlabel=r'$\theta$ [arcmin]',
-                           ylabel=r'$\omega(\theta)$',
+                           ylabel=r'$\omega_{cg}(\theta)$',
                            xscale='log', yscale='log',
                            xlim=None, ylim=None, grid=False):
     """
@@ -275,8 +275,8 @@ def get_galaxy_type_color(galaxy_type):
     """
     colors = {
         'all': 'black',
-        'early': '#ad0532',  # Red for early-type
-        'late': '#224c8f'    # Blue for late-type
+        'early': '#e81010',  # Red for early-type
+        'late': '#008fd6'    # Blue for late-type
     }
     return colors.get(galaxy_type, 'gray')
 

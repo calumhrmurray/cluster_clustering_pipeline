@@ -3,10 +3,91 @@ Filtering utilities for selecting subsets of clusters and galaxies.
 """
 
 import numpy as np
+import healpy as hp
+from astropy.io import fits
+from pathlib import Path
 
 
 class CatalogueFilter:
     """Class for applying filters to astronomical catalogues."""
+
+    @staticmethod
+    def _load_healpix_map(map_file, nest=False, nside=None, value_field=None):
+        map_path = Path(map_file)
+        if value_field:
+            with fits.open(map_path) as hdul:
+                data = np.asarray(hdul[1].data[value_field], dtype=float).reshape(-1)
+                header = hdul[1].header
+                map_nside = int(header.get("NSIDE", nside or 0))
+        else:
+            data = hp.read_map(map_path, nest=nest, dtype=np.float64, verbose=False)
+            map_nside = hp.npix2nside(len(data))
+
+        if nside and nside != map_nside:
+            order_in = "NEST" if nest else "RING"
+            order_out = "NEST" if nest else "RING"
+            data = hp.ud_grade(data, nside_out=nside, order_in=order_in, order_out=order_out)
+            map_nside = nside
+
+        return data, map_nside
+
+    @staticmethod
+    def apply_healpix_mask(catalogue, map_file, min_value=None, max_value=None,
+                           nest=False, nside=None, value_field=None, label=None):
+        """
+        Filter a catalogue using a HEALPix mask map.
+
+        Parameters
+        ----------
+        catalogue : astropy.table.Table
+            Input catalogue with 'ra' and 'dec' columns.
+        map_file : str or Path
+            HEALPix FITS map file.
+        min_value : float, optional
+            Minimum mask value to keep (e.g. 0.8).
+        max_value : float, optional
+            Maximum mask value to keep.
+        nest : bool, optional
+            Whether the map uses NESTED ordering.
+        nside : int, optional
+            Override map NSIDE (map is upgraded/downgraded if needed).
+        value_field : str, optional
+            Column name if the FITS file is a table with values.
+        label : str, optional
+            Label for logging.
+        """
+        if 'ra' not in catalogue.colnames or 'dec' not in catalogue.colnames:
+            print("Warning: Catalogue missing 'ra'/'dec' columns; skipping mask filter.")
+            return catalogue
+
+        map_values, map_nside = CatalogueFilter._load_healpix_map(
+            map_file, nest=nest, nside=nside, value_field=value_field
+        )
+
+        ra = np.asarray(catalogue['ra'], dtype=float)
+        dec = np.asarray(catalogue['dec'], dtype=float)
+        valid = np.isfinite(ra) & np.isfinite(dec)
+
+        keep = np.zeros(len(catalogue), dtype=bool)
+        if not np.any(valid):
+            print("Warning: No valid coordinates for mask filtering.")
+            return catalogue[keep]
+
+        theta = np.radians(90.0 - dec[valid])
+        phi = np.radians(np.mod(ra[valid], 360.0))
+        pix = hp.ang2pix(map_nside, theta, phi, nest=nest)
+
+        values = map_values[pix]
+        good = np.isfinite(values) & (values != hp.UNSEEN) & (values > -1e20)
+        if min_value is not None:
+            good &= values >= min_value
+        if max_value is not None:
+            good &= values <= max_value
+
+        keep[valid] = good
+        tag = f" ({label})" if label else ""
+        print(f"Mask filter{tag}: {np.sum(keep)} / {len(catalogue)} objects pass")
+        return catalogue[keep]
 
     @staticmethod
     def apply_filters(catalogue, filters):

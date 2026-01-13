@@ -6,6 +6,7 @@ import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
+from pathlib import Path
 import treecorr
 
 
@@ -50,9 +51,13 @@ class CatalogueManager:
             The loaded catalogue
         """
         print(f"Loading cluster catalogue from {filepath}")
-        clusters = Table(fits.open(filepath)[1].data)
+        clusters = self._load_table(filepath)
 
         # Add coordinate columns
+        for col in (ra_col, dec_col, z_col):
+            if col not in clusters.colnames:
+                raise ValueError(f"Column '{col}' not found in cluster catalogue {filepath}")
+
         clusters['ra'] = clusters[ra_col]
         clusters['dec'] = clusters[dec_col]
         clusters['redshift'] = clusters[z_col]
@@ -87,17 +92,13 @@ class CatalogueManager:
         """
         print(f"Loading galaxy catalogue from {filepath}")
 
-        with fits.open(filepath) as hdul:
-            if columns is not None:
-                # Only load specified columns for memory efficiency
-                print(f"  Loading only {len(columns)} columns to save memory")
-                galaxies = Table()
-                for col in columns:
-                    galaxies[col] = hdul[1].data[col]
-            else:
-                galaxies = Table(hdul[1].data)
+        galaxies = self._load_table(filepath, columns=columns)
 
         # Standardize column names
+        for col in (ra_col, dec_col, z_col):
+            if col not in galaxies.colnames:
+                raise ValueError(f"Column '{col}' not found in galaxy catalogue {filepath}")
+
         galaxies['ra'] = galaxies[ra_col]
         galaxies['dec'] = galaxies[dec_col]
         galaxies['redshift'] = galaxies[z_col]
@@ -130,23 +131,57 @@ class CatalogueManager:
         """
         print(f"Loading random catalogue from {filepath}")
 
-        with fits.open(filepath) as hdul:
-            if columns is not None:
-                # Only load specified columns for memory efficiency
-                print(f"  Loading only {len(columns)} columns to save memory")
-                randoms = Table()
-                for col in columns:
-                    randoms[col] = hdul[1].data[col]
-            else:
-                randoms = Table(hdul[1].data)
+        randoms = self._load_table(filepath, columns=columns)
 
         # Standardize column names
+        for col in (ra_col, dec_col):
+            if col not in randoms.colnames:
+                raise ValueError(f"Column '{col}' not found in random catalogue {filepath}")
+
         randoms['ra'] = randoms[ra_col]
         randoms['dec'] = randoms[dec_col]
-        randoms['redshift'] = randoms[z_col]
+        if z_col:
+            if z_col not in randoms.colnames:
+                raise ValueError(f"Column '{z_col}' not found in random catalogue {filepath}")
+            randoms['redshift'] = randoms[z_col]
+        else:
+            print("Warning: No random redshift column provided; skipping redshift assignment.")
 
         print(f"Loaded {len(randoms)} randoms")
         return randoms
+
+    def _load_table(self, filepath, columns=None):
+        path = Path(filepath)
+        suffix = path.suffix.lower()
+        if columns is not None:
+            columns = [col for col in columns if col]
+
+        if suffix in {'.fits', '.fit', '.fz'}:
+            with fits.open(filepath) as hdul:
+                if columns is not None:
+                    print(f"  Loading only {len(columns)} columns to save memory")
+                    table = Table()
+                    for col in columns:
+                        table[col] = hdul[1].data[col]
+                else:
+                    table = Table(hdul[1].data)
+            return table
+
+        if suffix in {'.parquet', '.pq'}:
+            try:
+                import pyarrow.parquet as pq
+            except ImportError as exc:
+                raise ImportError("pyarrow is required to read parquet catalogues") from exc
+            table = pq.read_table(filepath, columns=columns)
+            data = Table()
+            for name in table.schema.names:
+                col = table.column(name)
+                if hasattr(col, "combine_chunks"):
+                    col = col.combine_chunks()
+                data[name] = col.to_numpy(zero_copy_only=False)
+            return data
+
+        raise ValueError(f"Unsupported catalogue format for {filepath}")
 
     def add_cartesian_coordinates(self, catalogue):
         """

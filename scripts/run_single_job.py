@@ -128,10 +128,14 @@ def main():
     random_ra = random_col.get('ra', 'right_ascension')
     random_dec = random_col.get('dec', 'declination')
     random_z = random_col.get('redshift', 'z')
+    if random_z in (None, ""):
+        random_z = None
 
     # For randoms, only load RA, Dec, redshift in 2D mode
     if mode == '2d':
-        random_cols_to_load = [random_ra, random_dec, random_z]
+        random_cols_to_load = [random_ra, random_dec]
+        if random_z:
+            random_cols_to_load.append(random_z)
         print(f"2D mode: Loading only {len(random_cols_to_load)} random columns to save memory")
     else:
         random_cols_to_load = None
@@ -143,6 +147,58 @@ def main():
         z_col=random_z,
         columns=random_cols_to_load
     )
+
+    # Apply optional HEALPix mask filtering
+    mask_cfg = config.get_mask_filter_config()
+    if mask_cfg and mask_cfg.get('enabled', True):
+        from src.filters import CatalogueFilter
+
+        mask_file = mask_cfg.get('map_file') or mask_cfg.get('mask_file')
+        min_value = mask_cfg.get('min_value', mask_cfg.get('threshold'))
+        max_value = mask_cfg.get('max_value')
+        nest = mask_cfg.get('nest', False)
+        nside = mask_cfg.get('nside')
+        value_field = mask_cfg.get('value_field')
+        targets = mask_cfg.get('targets', mask_cfg.get('apply_to', ['galaxies']))
+        if isinstance(targets, str):
+            targets = [targets]
+        elif isinstance(targets, dict):
+            targets = [name for name, enabled in targets.items() if enabled]
+
+        print("\nApplying HEALPix mask filter...")
+        if 'clusters' in targets:
+            clusters = CatalogueFilter.apply_healpix_mask(
+                clusters,
+                mask_file,
+                min_value=min_value,
+                max_value=max_value,
+                nest=nest,
+                nside=nside,
+                value_field=value_field,
+                label='clusters'
+            )
+        if 'galaxies' in targets:
+            galaxies = CatalogueFilter.apply_healpix_mask(
+                galaxies,
+                mask_file,
+                min_value=min_value,
+                max_value=max_value,
+                nest=nest,
+                nside=nside,
+                value_field=value_field,
+                label='galaxies'
+            )
+        if 'randoms' in targets:
+            randoms = CatalogueFilter.apply_healpix_mask(
+                randoms,
+                mask_file,
+                min_value=min_value,
+                max_value=max_value,
+                nest=nest,
+                nside=nside,
+                value_field=value_field,
+                label='randoms'
+            )
 
     # Apply systematic weights if configured
     weight_config = config.get_weight_config()

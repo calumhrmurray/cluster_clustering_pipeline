@@ -202,6 +202,10 @@ class PipelineConfig:
         """Get systematic weight configuration."""
         return self.config.get('systematic_weights', {})
 
+    def get_mask_filter_config(self):
+        """Get optional HEALPix mask filter configuration."""
+        return self.config.get('mask_filter', None)
+
     def get_output_dir(self):
         """Get output directory path."""
         return Path(self.config.get('output_directory', 'outputs'))
@@ -269,6 +273,14 @@ class PipelineConfig:
             metric = analysis.get('metric', 'Rperp')
             if metric != 'Rperp':
                 print(f"WARNING: 3D mode typically uses metric='Rperp', got '{metric}'")
+
+        mask_cfg = self.config.get('mask_filter')
+        if mask_cfg and mask_cfg.get('enabled', True):
+            map_file = mask_cfg.get('map_file') or mask_cfg.get('mask_file')
+            if not map_file:
+                raise ValueError("mask_filter enabled but no map_file provided")
+            if not Path(map_file).exists():
+                raise ValueError(f"Mask map not found: {map_file}")
 
         print("Configuration validation passed")
         return True
@@ -377,6 +389,14 @@ def create_template_config(output_path='config_template.yaml'):
             'depth_weights': {
                 'column': 'limiting_magnitude'
             }
+        },
+        'mask_filter': {
+            'enabled': False,
+            'map_file': '/path/to/mask.fits',
+            'min_value': 0.8,
+            'nest': False,
+            'nside': None,
+            'targets': ['galaxies']
         },
         'output_directory': './outputs',
         'slurm': {

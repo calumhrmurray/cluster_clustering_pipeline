@@ -57,6 +57,10 @@ def main():
         print("\nTest mode - running only first job")
         job_specs = job_specs[:1]
 
+    galaxy_filter_cols = set()
+    for job_spec in job_specs:
+        galaxy_filter_cols.update(job_spec['galaxy_filters'].keys())
+
     # Setup cosmology
     cosmo_params = config.get_cosmology_params()
     cosmology = FlatLambdaCDM(H0=cosmo_params['H0'], Om0=cosmo_params['Om0'])
@@ -68,6 +72,8 @@ def main():
     print("\nLoading catalogues...")
     catalogues = config.get_catalogues()
     col_mappings = config.get_column_mappings()
+    analysis_params = config.get_analysis_params()
+    mode = analysis_params.get('mode', '3d')
 
     cluster_col = col_mappings.get('cluster', {})
     clusters = cat_manager.load_cluster_catalogue(
@@ -78,11 +84,24 @@ def main():
     )
 
     galaxy_col = col_mappings.get('galaxy', {})
+    galaxy_ra = galaxy_col.get('ra', 'right_ascension')
+    galaxy_dec = galaxy_col.get('dec', 'declination')
+    galaxy_z = galaxy_col.get('redshift', 'phz_median')
+    if mode == '2d':
+        gal_cols_to_load = [galaxy_ra, galaxy_dec, galaxy_z]
+        for filter_col in galaxy_filter_cols:
+            if filter_col not in gal_cols_to_load and filter_col != 'redshift':
+                gal_cols_to_load.append(filter_col)
+        print(f"2D mode: Loading only {len(gal_cols_to_load)} galaxy columns to save memory")
+    else:
+        gal_cols_to_load = None
+
     galaxies = cat_manager.load_galaxy_catalogue(
         catalogues['galaxies'],
-        ra_col=galaxy_col.get('ra', 'right_ascension'),
-        dec_col=galaxy_col.get('dec', 'declination'),
-        z_col=galaxy_col.get('redshift', 'phz_median')
+        ra_col=galaxy_ra,
+        dec_col=galaxy_dec,
+        z_col=galaxy_z,
+        columns=gal_cols_to_load
     )
 
     # Add shapes if available
@@ -95,12 +114,78 @@ def main():
         )
 
     random_col = col_mappings.get('random', {})
+    random_ra = random_col.get('ra', 'right_ascension')
+    random_dec = random_col.get('dec', 'declination')
+    random_z = random_col.get('redshift', 'z')
+    if random_z in (None, ""):
+        random_z = None
+    if mode == '2d':
+        random_cols_to_load = [random_ra, random_dec]
+        if random_z:
+            random_cols_to_load.append(random_z)
+        print(f"2D mode: Loading only {len(random_cols_to_load)} random columns to save memory")
+    else:
+        random_cols_to_load = None
+
     randoms = cat_manager.load_random_catalogue(
         catalogues['randoms'],
-        ra_col=random_col.get('ra', 'right_ascension'),
-        dec_col=random_col.get('dec', 'declination'),
-        z_col=random_col.get('redshift', 'z')
+        ra_col=random_ra,
+        dec_col=random_dec,
+        z_col=random_z,
+        columns=random_cols_to_load
     )
+
+    # Apply optional HEALPix mask filtering
+    mask_cfg = config.get_mask_filter_config()
+    if mask_cfg and mask_cfg.get('enabled', True):
+        from src.filters import CatalogueFilter
+
+        mask_file = mask_cfg.get('map_file') or mask_cfg.get('mask_file')
+        min_value = mask_cfg.get('min_value', mask_cfg.get('threshold'))
+        max_value = mask_cfg.get('max_value')
+        nest = mask_cfg.get('nest', False)
+        nside = mask_cfg.get('nside')
+        value_field = mask_cfg.get('value_field')
+        targets = mask_cfg.get('targets', mask_cfg.get('apply_to', ['galaxies']))
+        if isinstance(targets, str):
+            targets = [targets]
+        elif isinstance(targets, dict):
+            targets = [name for name, enabled in targets.items() if enabled]
+
+        print("\nApplying HEALPix mask filter...")
+        if 'clusters' in targets:
+            clusters = CatalogueFilter.apply_healpix_mask(
+                clusters,
+                mask_file,
+                min_value=min_value,
+                max_value=max_value,
+                nest=nest,
+                nside=nside,
+                value_field=value_field,
+                label='clusters'
+            )
+        if 'galaxies' in targets:
+            galaxies = CatalogueFilter.apply_healpix_mask(
+                galaxies,
+                mask_file,
+                min_value=min_value,
+                max_value=max_value,
+                nest=nest,
+                nside=nside,
+                value_field=value_field,
+                label='galaxies'
+            )
+        if 'randoms' in targets:
+            randoms = CatalogueFilter.apply_healpix_mask(
+                randoms,
+                mask_file,
+                min_value=min_value,
+                max_value=max_value,
+                nest=nest,
+                nside=nside,
+                value_field=value_field,
+                label='randoms'
+            )
 
     # Apply systematic weights if configured
     galaxy_weights = None
@@ -112,9 +197,6 @@ def main():
             galaxy_weights = WeightCalculator.load_weights(weight_config['weight_file'])
         else:
             galaxy_weights = apply_systematic_weights(galaxies, weight_config)
-
-    # Get analysis parameters
-    analysis_params = config.get_analysis_params()
 
     # Create output directory
     output_dir = config.get_output_dir()
