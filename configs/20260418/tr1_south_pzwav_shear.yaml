@@ -3,7 +3,7 @@
 # Unified catalogue: unified_clusters_gluematch_direct_FILTERED_0.6Mpc_20260418_141604
 
 catalogues:
-  clusters: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/DET-CL/cluster_catalogues/pzwav_e.fits
+  clusters: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/DET-CL/cluster_catalogues/unified_clusters_gluematch_direct_FILTERED_0.6Mpc_20260418_141604.fits
   galaxies: /sps/euclid/OU-LE3/CL/COMB/TR1/shear_catalogues/clustering_catalogue_130125_calum.pq
   randoms: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs/random_catalogues/randoms_2048_n6000000.parquet
 
@@ -35,7 +35,10 @@ analysis_parameters:
   mode: 2d
   npatch: 50
 
-cluster_bins: {}
+cluster_bins:
+  detector:
+    column: DET_CODE_NB
+    values: [2]
 galaxy_bins: {}
 
 systematic_weights:
