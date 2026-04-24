@@ -74,7 +74,7 @@ mask_filter:
 output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs/20260418/pzwav_early_type_richness_120_1000
 
 slurm:
-  time: "02:00:00"
+  time: "00:10:00"
   mem: "64G"
   cpus: 8
   partition: "hpc"
