@@ -219,12 +219,13 @@ def main():
     # Load configuration
     config = PipelineConfig(args.config)
 
-    # Get pipeline directory (go up from config file if in configs/)
+    # Get pipeline directory by walking up until we find the dir with scripts/
     config_path = Path(args.config).resolve()
-    if config_path.parent.name == 'configs':
-        pipeline_dir = config_path.parent.parent
-    else:
-        pipeline_dir = config_path.parent
+    pipeline_dir = config_path.parent
+    while pipeline_dir != pipeline_dir.parent:
+        if (pipeline_dir / 'scripts').is_dir() and (pipeline_dir / 'src').is_dir():
+            break
+        pipeline_dir = pipeline_dir.parent
 
     # Get config name (without extension) for unique spec directory
     config_name = config_path.stem  # e.g., 'rr2_redshift_all_galaxies'

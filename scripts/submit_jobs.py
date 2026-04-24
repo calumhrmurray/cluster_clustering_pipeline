@@ -30,12 +30,13 @@ def main():
     print("GENERATE AND SUBMIT SLURM JOBS")
     print("="*70)
 
-    # Get pipeline directory (go up from config file if in configs/)
+    # Get pipeline directory by walking up until we find the dir with scripts/
     config_path = Path(args.config).resolve()
-    if config_path.parent.name == 'configs':
-        pipeline_dir = config_path.parent.parent
-    else:
-        pipeline_dir = config_path.parent
+    pipeline_dir = config_path.parent
+    while pipeline_dir != pipeline_dir.parent:
+        if (pipeline_dir / 'scripts').is_dir() and (pipeline_dir / 'src').is_dir():
+            break
+        pipeline_dir = pipeline_dir.parent
 
     # Load config to show summary
     config = PipelineConfig(args.config)
