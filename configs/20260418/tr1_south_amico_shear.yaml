@@ -43,7 +43,7 @@ systematic_weights:
 
 mask_filter:
   enabled: true
-  map_file: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/systematic_maps/maps/TR1/tr1_south_mask_nside2048.fits
+  map_file: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/DET-CL/systematic_maps/maps/TR1/tr1_south_mask_nside2048.fits
   min_value: 0.8
   nest: false
   nside: 2048
