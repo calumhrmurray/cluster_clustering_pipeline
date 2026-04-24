@@ -1,0 +1,81 @@
+# TR1 South clustering (AMICO clusters) using shear galaxy catalogue + randoms
+# LATE-TYPE GALAXIES (Sersic index < 2.0)
+# 6 redshift bins from 0.1 to 1.9, richness bin [20, 60)
+# 2D angular mode
+# Unified catalogue: unified_clusters_gluematch_direct_FILTERED_0.6Mpc_20260418_141604
+
+catalogues:
+  clusters: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/DET-CL/cluster_catalogues/amico_e.fits
+  galaxies: /sps/euclid/OU-LE3/CL/COMB/TR1/shear_catalogues/clustering_catalogue_130125_calum.pq
+  randoms: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs/random_catalogues/randoms_2048_n6000000.parquet
+
+column_mappings:
+  cluster:
+    ra: RIGHT_ASCENSION_CLUSTER
+    dec: DECLINATION_CLUSTER
+    redshift: Z_CLUSTER
+    richness: RICHNESS_CLUSTER
+  galaxy:
+    ra: she_lensmc_ra
+    dec: she_lensmc_dec
+    redshift: phz_median
+    sersic_index: sersic_sersic_vis_index
+  random:
+    ra: right_ascension
+    dec: declination
+    redshift: null
+
+cosmology:
+  H0: 70
+  Om0: 0.3
+
+analysis_parameters:
+  min_sep: 0.1
+  max_sep: 60.0
+  sep_units: arcmin
+  nbins: 32
+  bin_type: Log
+  metric: Euclidean
+  mode: 2d
+  npatch: 50
+
+# Cluster bins - 6 redshift bins + richness cut
+cluster_bins:
+  redshift:
+    column: Z_CLUSTER
+    bins: [0.1, 0.4, 0.7, 1.0, 1.3, 1.6, 1.9]
+  richness:
+    column: RICHNESS_CLUSTER
+    bins: [20.0, 60.0]
+
+# Galaxy bins - 6 redshift bins
+  sersic_index:
+    column: sersic_sersic_vis_index
+    bins: [0.0, 2.0]
+galaxy_bins:
+  redshift:
+    column: redshift
+    bins: [0.1, 0.4, 0.7, 1.0, 1.3, 1.6, 1.9]
+
+systematic_weights:
+  enabled: false
+
+mask_filter:
+  enabled: true
+  map_file: /sps/euclid/Users/cmurray/euclid_clusters_tr1_validation/systematic_maps/maps/TR1/tr1_south_mask_nside2048.fits
+  min_value: 0.8
+  nest: false
+  nside: 2048
+  targets: ["galaxies"]
+
+output_directory: /sps/euclid/Users/cmurray/euclid_cluster_clustering/cluster_clustering_pipeline/outputs/20260418/amico_late_type_richness_20_60
+
+slurm:
+  time: "02:00:00"
+  mem: "64G"
+  cpus: 8
+  partition: "hpc"
+  account: "euclid"
+  modules:
+    - Programming_Languages/anaconda/3.11
+  conda_env: /sps/euclid/Users/cmurray/miniconda3/envs/cucount
